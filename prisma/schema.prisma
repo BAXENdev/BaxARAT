@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// model Admins {
+//   id          String                @id @unique @default(uuid())
+//   password    String
+//   name        String
+//   // playerAccounts  String[]
+// }
+
+// model Users {
+//   id          String                @id @unique @default(uuid())
+//   password    String
+//   name        String
+//   playerAccounts  String[]
+// }
+
+
+
+
+
+
+model Players {
+  identity    String                  @id @unique
+  name        String
+  kicks       Int                     @default(0)
+  bans        PlayerBans[]
+  kills       PlayerKills[]           @relation("Killer")
+  deaths      PlayerKills[]           @relation("Victim")
+  messages    PlayerMessages[]
+  connections GameServerConnections[]
+}
+
+model GameServers {
+  ipPort      String                  @id
+  name        String
+  bans        PlayerBans[]
+  kills       PlayerKills[]
+  messages    PlayerMessages[]
+  connections GameServerConnections[]
+}
+
+model PlayerBans {
+  id          Int         @id @default(autoincrement())
+  identity    String
+  ipPort      String
+  banTime     DateTime
+  banDuration Int
+  reason      String
+  player      Players     @relation(fields: [identity], references: [identity])
+  gameServer  GameServers @relation(fields: [ipPort], references: [ipPort])
+
+  @@unique([identity, ipPort, banTime])
+}
+
+model PlayerKills {
+  id             Int         @id @default(autoincrement())
+  identity       String
+  ipPort         String
+  killedIdentity String
+  killer         Players     @relation("Killer", fields: [identity], references: [identity])
+  victim         Players     @relation("Victim", fields: [killedIdentity], references: [identity])
+  gameServer     GameServers @relation(fields: [ipPort], references: [ipPort])
+  timestamp      DateTime    @default(now())
+
+  @@index([identity])
+  @@index([killedIdentity])
+  @@index([ipPort])
+}
+
+model GameServerConnections {
+  id          Int         @id @default(autoincrement())
+  identity    String
+  ipPort      String
+  connectTime DateTime
+  player      Players     @relation(fields: [identity], references: [identity])
+  gameServer  GameServers @relation(fields: [ipPort], references: [ipPort])
+
+  @@unique([identity, ipPort, connectTime])
+  @@index([identity])
+  @@index([ipPort])
+}
+
+model PlayerMessages {
+  id          Int         @id @default(autoincrement())
+  identity    String
+  ipPort      String
+  message     String
+  messageTime DateTime
+  player      Players     @relation(fields: [identity], references: [identity])
+  gameServer  GameServers @relation(fields: [ipPort], references: [ipPort])
+
+  @@unique([identity, ipPort, messageTime])
+  @@index([identity])
+  @@index([ipPort])
+}
